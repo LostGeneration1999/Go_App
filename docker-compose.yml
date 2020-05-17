@@ -1,0 +1,44 @@
+version: '3'
+
+services:
+  mysql:
+    container_name: mysql
+    image: mysql:5.7
+    build:
+      context: .
+      dockerfile: ./docker/mysql/Dockerfile
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_USER: root
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: shop-mysql
+    command: mysqld --character-set-server=utf8 --collation-server=utf8_unicode_ci --skip-character-set-client-handshake
+    volumes:
+      - ./db-data:/var/lib/mysql
+      - ./docker/mysql/my.cnf:/etc/mysql/my.cnf
+      - ./docker/mysql/init/:/docker-entrypoint-initdb.d
+      
+  golang:
+    links:
+      - mysql
+    build: ./docker/golang/Dockerfile
+    container_name: docker_compose_golang
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./docker/golang/:/go/src/docker_compose_golang
+    command: go run main.go
+    working_dir: /go/src/app
+    
+  web:
+    build: ./docker/client/Dockerfile
+    ports:
+      - 8888:8080
+    volumes:
+      - ./docker/client:/app
+    working_dir: /app
+
+volumes:
+  db-data:
+    driver: local
